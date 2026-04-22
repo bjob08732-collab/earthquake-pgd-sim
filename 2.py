@@ -14,43 +14,31 @@ mw = st.sidebar.slider("矩震级 (Mw)", min_value=6.0, max_value=8.0, value=7.0
 fault_type = st.sidebar.selectbox("断层机制",
                                   ["逆冲断层 (Thrust/Reverse)", "走滑断层 (Strike-Slip)", "正断层 (Normal)"])
 
-# ----------------- 3. 核心物理/数学模型计算 -----------------
-# X轴：生成横跨断层的距离，从 -20km 到 20km (0点为断层地表迹线)
-x = np.linspace(-20, 20, 500)
+# ----------------- 3. 核心物理/数学模型计算 (注入真实 GMPE 系数) -----------------
+# 假设你得到的系数如下（请替换为你自己的真实数值）
+# 水平向系数
+C_H = {"c1": -4.5793, "c2": 1.5042, "c3": -0.8335, "c4": 0.0430, "c5": -0.1945, "h": 5.0}
+# 竖直向系数
+C_V = {"c1": -5.2102, "c2": 1.3883, "c3": -0.7883, "c4": 0.3040, "c5": 0.0428, "h": 5.0}
 
-# 基础位移峰值经验公式 (这里采用简化指数模型演示，建议替换为你的实际拟合公式)
-# 震级每增加1级，能量呈指数级放大
-d_max = 10 * (2.5 ** (mw - 6.5))
+# 定义断层变量 (Dummy Variables)
+f_rv = 1 if "逆冲" in fault_type else 0
+f_nm = 1 if "正断" in fault_type else 0
 
-# 初始化水平和竖直位移数组
-v_disp = np.zeros_like(x)
-h_disp = np.zeros_like(x)
+# 计算位移 (使用 np.exp 还原对数)
+# 公式: ln(PGD) = c1 + c2*Mw + c3*ln(R + h) + c4*FRV + c5*FNM
+h_val = np.exp(C_H["c1"] + C_H["c2"] * mw + C_H["c3"] * np.log(np.abs(x) + C_H["c1"]) + C_H["c4"] * f_rv + C_H["c5"] * f_nm)
+v_val = np.exp(C_V["c1"] + C_V["c2"] * mw + C_V["c3"] * np.log(np.abs(x) + C_V["c1"]) + C_V["c4"] * f_rv + C_V["c5"] * f_nm)
 
-# 根据不同断层机制应用不同的空间衰减函数
-for i, xi in enumerate(x):
-    if "逆冲断层" in fault_type:
-        if xi > 0:  # 上盘 (剧烈抬升)
-            v_disp[i] = d_max * np.exp(-xi / 4.0)
-            h_disp[i] = -0.5 * d_max * np.exp(-xi / 4.0)
-        else:  # 下盘 (轻微下沉)
-            v_disp[i] = -0.1 * d_max * np.exp(xi / 4.0)
-            h_disp[i] = 0.5 * d_max * np.exp(xi / 4.0)
+# 注意：GMPE 算出的是幅值，我们需要根据“上下盘”方向给它正负号
+h_disp = np.where(x >= 0, h_val, -h_val)  # 走滑或水平挤压的简化方向处理
 
-    elif "正断层" in fault_type:
-        if xi > 0:  # 上盘 (剧烈沉降)
-            v_disp[i] = -d_max * np.exp(-xi / 4.0)
-            h_disp[i] = 0.5 * d_max * np.exp(-xi / 4.0)
-        else:  # 下盘 (轻微隆起)
-            v_disp[i] = 0.1 * d_max * np.exp(xi / 4.0)
-            h_disp[i] = -0.5 * d_max * np.exp(xi / 4.0)
-
-    elif "走滑断层" in fault_type:
-        v_disp[i] = 0  # 走滑断层竖直向位移极小
-        # 水平向表现为典型的 Fling-step (滑冲阶跃)
-        if xi > 0:
-            h_disp[i] = d_max * (1 - np.exp(-xi / 5.0))
-        else:
-            h_disp[i] = -d_max * (1 - np.exp(xi / 5.0))
+if "逆冲" in fault_type:
+    v_disp = np.where(x >= 0, v_val, -0.1 * v_val) # 上盘抬升，下盘轻微下沉
+elif "正断" in fault_type:
+    v_disp = np.where(x >= 0, -v_val, 0.1 * v_val) # 上盘下沉，下盘轻微隆起
+else:
+    v_disp = np.zeros_like(x) # 走滑断层竖向设为0
 
 # ----------------- 4. 数据可视化绘图 -----------------
 # 注释掉强制使用中文黑体的设置，让云服务器使用默认英文安全字体

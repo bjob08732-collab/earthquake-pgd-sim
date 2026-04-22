@@ -53,8 +53,8 @@ for i, xi in enumerate(x):
             h_disp[i] = -d_max * (1 - np.exp(xi / 5.0))
 
 # ----------------- 4. 数据可视化绘图 -----------------
-# 设置中文字体（防止乱码，如果你的电脑没有黑体可以注释掉这两行）
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS']
+# 注释掉强制使用中文黑体的设置，让云服务器使用默认英文安全字体
+# plt.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
 
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
@@ -63,28 +63,25 @@ fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 ax1.plot(x, v_disp, color='#E63946', linewidth=3)
 ax1.axvline(x=0, color='gray', linestyle='--', alpha=0.7)
 ax1.fill_between(x, v_disp, 0, alpha=0.2, color='#E63946')
-ax1.set_title(f"竖直向永久位移 (Vertical PGD)", fontsize=14, fontweight='bold')
-ax1.set_ylabel("位移量 (cm)", fontsize=12)
+ax1.set_title(f"Vertical Permanent Ground Displacement (PGD)", fontsize=14, fontweight='bold')
+ax1.set_ylabel("Displacement (cm)", fontsize=12)
 ax1.grid(True, linestyle=':', alpha=0.6)
-ax1.text(-19, ax1.get_ylim()[1] * 0.8, '← 下盘 (Footwall)', fontsize=12, color='#2d3436',
-         bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
-ax1.text(10, ax1.get_ylim()[1] * 0.8, '上盘 (Hanging wall) →', fontsize=12, color='#2d3436',
-         bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
+ax1.text(-19, ax1.get_ylim()[1]*0.8, '<- Footwall', fontsize=12, color='#2d3436', bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
+ax1.text(10, ax1.get_ylim()[1]*0.8, 'Hanging Wall ->', fontsize=12, color='#2d3436', bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
 
 # 图2：水平向位移
 ax2.plot(x, h_disp, color='#457B9D', linewidth=3)
 ax2.axvline(x=0, color='gray', linestyle='--', alpha=0.7)
 ax2.fill_between(x, h_disp, 0, alpha=0.2, color='#457B9D')
-ax2.set_title(f"水平向永久位移 (Horizontal PGD)", fontsize=14, fontweight='bold')
-ax2.set_xlabel("横跨断层距离 (km) [0处为断层地表迹线]", fontsize=12, fontweight='bold')
-ax2.set_ylabel("位移量 (cm)", fontsize=12)
+ax2.set_title(f"Horizontal Permanent Ground Displacement (PGD)", fontsize=14, fontweight='bold')
+ax2.set_xlabel("Cross-fault Distance (km) [0 = Fault Trace]", fontsize=12, fontweight='bold')
+ax2.set_ylabel("Displacement (cm)", fontsize=12)
 ax2.grid(True, linestyle=':', alpha=0.6)
 
 plt.tight_layout()
 
 # 将绘制好的图表推送到网页
 st.pyplot(fig)
-
 # ----------------- 5. 附加功能：数据展示区 -----------------
 st.markdown("---")
 with st.expander("查看当前参数下的空间剖面数据表"):

@@ -14,31 +14,39 @@ mw = st.sidebar.slider("矩震级 (Mw)", min_value=6.0, max_value=8.0, value=7.0
 fault_type = st.sidebar.selectbox("断层机制",
                                   ["逆冲断层 (Thrust/Reverse)", "走滑断层 (Strike-Slip)", "正断层 (Normal)"])
 
-# ----------------- 3. 核心物理/数学模型计算 (注入真实 GMPE 系数) -----------------
-# 假设你得到的系数如下（请替换为你自己的真实数值）
-# 水平向系数
+import numpy as np
+
+# ----------------- 3. 核心物理/数学模型计算 -----------------
+
+# 1. 必须要先定义 x (横轴距离坐标)！生成从 -max_dist 到 +max_dist 的 500 个点
+# 如果你没有 max_dist 变量，可以直接写死数字，比如：x = np.linspace(-30, 30, 500)
+# 在网页侧边栏添加一个控制距离的滑块（默认显示 30 km）
+max_dist = st.sidebar.slider("最大显示距离 (km)", 10, 100, 30)
+
+# 然后根据滑块的值生成 x 坐标
+x = np.linspace(-max_dist, max_dist, 500)
+
+# 2. 你的真实核心回归系数 (请换成你刚才回归得出的真实数值)
 C_H = {"c1": -4.5793, "c2": 1.5042, "c3": -0.8335, "c4": 0.0430, "c5": -0.1945, "h": 5.0}
-# 竖直向系数
 C_V = {"c1": -5.2102, "c2": 1.3883, "c3": -0.7883, "c4": 0.3040, "c5": 0.0428, "h": 5.0}
 
-# 定义断层变量 (Dummy Variables)
+# 3. 定义断层变量 (Dummy Variables)
 f_rv = 1 if "逆冲" in fault_type else 0
 f_nm = 1 if "正断" in fault_type else 0
 
-# 计算位移 (使用 np.exp 还原对数)
-# 公式: ln(PGD) = c1 + c2*Mw + c3*ln(R + h) + c4*FRV + c5*FNM
-h_val = np.exp(C_H["c1"] + C_H["c2"] * mw + C_H["c3"] * np.log(np.abs(x) + C_H["c1"]) + C_H["c4"] * f_rv + C_H["c5"] * f_nm)
-v_val = np.exp(C_V["c1"] + C_V["c2"] * mw + C_V["c3"] * np.log(np.abs(x) + C_V["c1"]) + C_V["c4"] * f_rv + C_V["c5"] * f_nm)
+# 4. 计算位移 (注意：这里修正了对数项，使用的是 ["h"] 而不是 ["c1"])
+h_val = np.exp(C_H["c1"] + C_H["c2"] * mw + C_H["c3"] * np.log(np.abs(x) + C_H["h"]) + C_H["c4"] * f_rv + C_H["c5"] * f_nm)
+v_val = np.exp(C_V["c1"] + C_V["c2"] * mw + C_V["c3"] * np.log(np.abs(x) + C_V["h"]) + C_V["c4"] * f_rv + C_V["c5"] * f_nm)
 
-# 注意：GMPE 算出的是幅值，我们需要根据“上下盘”方向给它正负号
-h_disp = np.where(x >= 0, h_val, -h_val)  # 走滑或水平挤压的简化方向处理
+# 5. 上下盘方向处理
+h_disp = np.where(x >= 0, h_val, -h_val)
 
 if "逆冲" in fault_type:
-    v_disp = np.where(x >= 0, v_val, -0.1 * v_val) # 上盘抬升，下盘轻微下沉
+    v_disp = np.where(x >= 0, v_val, -0.1 * v_val)
 elif "正断" in fault_type:
-    v_disp = np.where(x >= 0, -v_val, 0.1 * v_val) # 上盘下沉，下盘轻微隆起
+    v_disp = np.where(x >= 0, -v_val, 0.1 * v_val)
 else:
-    v_disp = np.zeros_like(x) # 走滑断层竖向设为0
+    v_disp = np.zeros_like(x)
 
 # ----------------- 4. 数据可视化绘图 -----------------
 # 注释掉强制使用中文黑体的设置，让云服务器使用默认英文安全字体
@@ -70,6 +78,7 @@ plt.tight_layout()
 
 # 将绘制好的图表推送到网页
 st.pyplot(fig)
+
 # ----------------- 5. 附加功能：数据展示区 -----------------
 st.markdown("---")
 with st.expander("查看当前参数下的空间剖面数据表"):

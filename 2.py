@@ -5,11 +5,11 @@ import pandas as pd
 
 # ----------------- 1. 网页全局设置 -----------------
 st.set_page_config(page_title="近断层位移模拟器", layout="wide")
-st.title("🌍 近断层地表永久位移 (PGD) 空间分布模拟器")
+st.title("近断层地表永久位移 (PGD) 空间分布模拟器")
 st.markdown("本工具用于可视化不同震级和断层机制下，跨断层地表的永久位移（包含滑冲效应与上下盘效应）。")
 
 # ----------------- 2. 侧边栏：控制面板 -----------------
-st.sidebar.header("🎛️ 模型参数控制")
+st.sidebar.header("模型参数控制")
 mw = st.sidebar.slider("矩震级 (Mw)", min_value=6.0, max_value=8.0, value=7.0, step=0.1)
 fault_type = st.sidebar.selectbox("断层机制",
                                   ["逆冲断层 (Thrust/Reverse)", "走滑断层 (Strike-Slip)", "正断层 (Normal)"])
